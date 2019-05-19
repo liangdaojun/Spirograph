@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="myCanvas" style="border:1px solid #d3d3d3;">
+
+Your browser does not support the HTML5 canvas tag.
+</canvas>
+
+<script>
+
+var canvas=document.getElementById("myCanvas");
+
+canvas.width = window.innerWidth/2 > 1000 ? 1000 : window.innerWidth;
+canvas.height = window.innerHeight;
+
+var ctx=canvas.getContext("2d");
+
+console.log("hello")
+
+class Ball{
+	constructor(x,y,r,color) {
+		this.x=x
+		this.y=y
+		this.r=r
+		this.color=color
+	}
+	render(c){
+		
+		//ctx.clearRect(0,0,canvas.width,canvas.height);
+		c.beginPath()
+		c.arc(this.x,this.y,this.r,0,2*Math.PI)
+		c.fillStyle=this.color
+		c.fill()
+		c.closePath()
+		c.stroke()
+		//ctx.drawImage(img,0,speed)
+		// console.log(speed)
+	}
+}
+colors=['aqua','black','blue', 'fuchsia', 'gray', 'green', 'lime', 'maroon',
+'navy','olive','purple','red','silver','teal','white','yellow']
+
+//随机产生圆的位置x,y,半径r,颜色color
+
+ball_number=Math.max(Math.random()*10,3)
+balls=[]
+vx=[]
+vy=[]
+vr=[]
+v_angle=[]
+friction=[]
+f=1
+for(let i =0; i<ball_number;i++){
+	x=Math.random()*canvas.width
+	y=Math.random()*canvas.height
+	r=Math.max(Math.random()*100,20)
+	color_index=Math.floor(Math.random()*colors.length)
+	
+	ball =new Ball(x,y,r,colors[color_index])
+	
+	balls.push(ball)
+	vx.push(0)
+	vy.push(0)
+	
+	vr.push(0)
+	v_angle.push(Math.random())
+	
+	f*=0.93
+	friction.push(f)
+	console.log(x,y,r,color_index)
+}
+
+
+
+easing=0.2
+spring=0.03
+//friction=0.95
+targetX = canvas.width/2
+targetY = canvas.height/2
+
+mouseX=canvas.width/2
+mouseY=canvas.height/2
+
+angle=0.01
+a_r=0.1
+
+
+function updata(){
+
+	targetX=mouseX
+	targetY=mouseY
+	
+	for(let i=0;i<ball_number;i++){
+		ctx.moveTo(targetX,targetY)
+		ctx.strokeStyle=balls[i].color
+		ctx.lineTo(balls[i].x,balls[i].y)
+		ctx.stroke()
+		radius = balls[i].r*2//*a_r
+		//a_r+=angle
+		
+		vx[i] = targetX + Math.cos(vr[i]) * radius
+        vy[i] = targetY + Math.sin(vr[i]) * radius
+        vr[i]+=v_angle[i]*0.03
+		
+		balls[i].x=vx[i]
+		balls[i].y=vy[i]
+		balls[i].render(ctx)
+		
+		targetX=balls[i].x
+		targetY=balls[i].y
+	
+	}
+}
+
+const raf = window.requestAnimationFrame;
+
+
+// 将函数写在括号里,默认执行该函数.
+(function animate() {
+	ctx.clearRect(0,0,canvas.width,canvas.height);
+	
+	updata();
+	
+    raf(animate);
+})();
+
+
+
+// canvas.addEventListener('mousemove', ((e) => {
+// 	mouseX = e.x
+// 	mouseY = e.y
+// }))
+
+
+</script> 
+
+</body>
+</html>

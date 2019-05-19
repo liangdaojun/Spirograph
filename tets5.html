@@ -1,0 +1,166 @@
+<html>
+	<head>
+		<title>Bouncing Balls</title>
+
+		<style>
+			body {
+				background: #dddddd;
+			}
+
+			#canvas {
+				margin-left: 10px;
+				margin-top: 10px;
+				background: #ffffff;
+				border: thin solid #aaaaaa;
+			}
+
+			#glasspane {
+				position: absolute;
+				left: 50px;
+				top: 50px;
+				padding: 0px 20px 10px 10px;
+				background: rgba(0, 0, 0, 0.3);
+				border: thin solid rgba(0, 0, 0, 0.6);
+				color: #eeeeee;
+				font-family: Droid Sans, Arial, Helvetica, sans-serif;
+				font-size: 12px;
+				cursor: pointer;
+				-webkit-box-shadow: rgba(0, 0, 0, 0.5) 5px 5px 20px;
+				-moz-box-shadow: rgba(0, 0, 0, 0.5) 5px 5px 20px;
+				box-shadow: rgba(0, 0, 0, 0.5) 5px 5px 20px;
+			}
+
+			#glasspane h2 {
+				font-weight: normal;
+			}
+
+			#glasspane .title {
+				font-size: 2em;
+				color: rgba(255, 255, 0, 0.8);
+			}
+
+			#glasspane a:hover {
+				color: yellow;
+			}
+
+			#glasspane a {
+				text-decoration: none;
+				color: #cccccc;
+				font-size: 3.5em;
+			}
+
+			#glasspane p {
+				margin: 10px;
+				color: rgba(65, 65, 220, 1.0);
+				font-size: 12pt;
+				font-family: Palatino, Arial, Helvetica, sans-serif;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id='glasspane'>
+			<h2 class='title'>Bouncing Balls</h2>
+
+			<p>One hundred balls bouncing</p>
+
+			<a id='startButton'>Start</a>
+		</div>
+
+		<canvas id='canvas' width='750' height='500'>
+			Canvas not supported
+		</canvas>
+		<script>
+			var context = document.getElementById('canvas').getContext('2d'),
+			startButton = document.getElementById('startButton'),
+			glasspane = document.getElementById('glasspane'),
+			paused = true,
+			circles = [];
+
+			drawGrid(context, 'lightgray', 10, 10);
+
+			context.lineWidth = 0.5;
+			context.font = '32pt Ariel';
+
+			//创建100个球
+			for (var i=0; i < 100; ++i) {
+				circles[i] = { 
+					x: 300, 
+					y: 300, 
+					velocityX: 3*Math.random(),     //x速度
+					velocityY: 3*Math.random(),     //y速度
+					radius: 50*Math.random(),       //半径
+					color: 'rgba(' + (Math.random()*255).toFixed(0) + ', ' +
+									(Math.random()*255).toFixed(0) + ', ' +
+									(Math.random()*255).toFixed(0) + ', 1.0)' 
+				};
+			}
+
+			startButton.onclick = function(e) {
+				e.preventDefault();
+				e.stopPropagation();
+				paused = ! paused;
+				startButton.innerText = paused ? 'Start' : 'Stop';
+			};
+
+			glasspane.onmousedown = function(e) {
+				e.preventDefault();
+				e.stopPropagation();
+			}
+
+			context.canvas.onmousedown = function(e) {
+				e.preventDefault();
+				e.stopPropagation();
+			};
+
+			setInterval(function() {
+				if (!paused) {
+					context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+					drawGrid(context, 'lightgray', 10, 10);
+
+					circles.forEach(function(circle) {
+						context.beginPath();
+						context.arc(circle.x, circle.y, circle.radius, 0, Math.PI*2, false);
+						context.fillStyle = circle.color;
+						context.fill(); 
+						adjustPosition(circle);
+					});
+				}
+			}, 1000 / 60);
+
+			function adjustPosition(circle) {
+				//边缘检测
+				if (circle.x + circle.velocityX + circle.radius > context.canvas.width ||
+				circle.x + circle.velocityX - circle.radius < 0) 
+					circle.velocityX = -circle.velocityX;
+
+				//边缘检测
+				if (circle.y + circle.velocityY + circle.radius > context.canvas.height ||
+				circle.y + circle.velocityY - circle.radius  < 0) 
+					circle.velocityY= -circle.velocityY;
+
+				circle.x += circle.velocityX;
+				circle.y += circle.velocityY;
+			}
+
+			function drawGrid(context, color, stepx, stepy) {
+				context.strokeStyle = color;
+				context.lineWidth = 0.5;
+
+				for (var i = stepx + 0.5; i < context.canvas.width; i += stepx) {
+					context.beginPath();
+					context.moveTo(i, 0);
+					context.lineTo(i, context.canvas.height);
+					context.stroke();
+				}
+
+				for (var i = stepy + 0.5; i < context.canvas.height; i += stepy) {
+					context.beginPath();
+					context.moveTo(0, i);
+					context.lineTo(context.canvas.width, i);
+					context.stroke();
+				}
+			}
+
+	</body>
+</html>

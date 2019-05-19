@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>draw circles</title>
+    <style>
+        #canvas1 {
+            position: absolute;
+            left: 0px;
+            top: 0px;
+        }
+        
+        #canvas2 {
+            position: absolute;
+            left: 0px;
+            top: 0px;
+        }
+        
+        #glasspane {
+            position: absolute;
+            left: 50px;
+            top: 10px;
+            padding: 0px 20px 10px 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: thin solid rgba(0, 0, 0, 0.6);
+            color: #eeeeee;
+            font-family: Droid Sans, Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            cursor: pointer;
+            -webkit-box-shadow: rgba(0, 0, 0, 0.5) 5px 5px 20px;
+            -moz-box-shadow: rgba(0, 0, 0, 0.5) 5px 5px 20px;
+            box-shadow: rgba(0, 0, 0, 0.5) 5px 5px 20px;
+        }
+        
+        #glasspane a {
+            text-decoration: none;
+            font-size: 3em;
+        }
+        
+        #glasspane i {
+            margin: 10px;
+            color: rgba(65, 65, 220, 1.0);
+            font-size: 2em;
+            font-family: Palatino, Arial, Helvetica, sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="canvas1">
+	Your browser does not support the HTML5 canvas tag.
+	</canvas>
+
+    <canvas id="canvas2">
+	Your browser does not support the HTML5 canvas tag.
+	</canvas>
+
+    <div id='glasspane' onmouseover="OnMouseOver()" onmouseout="OnMouseOut()">
+        <h2 class='title'> 
+            <input type="button" value="重绘" onclick="OnRedraw()">
+			<input type="button" value="下载" onclick="OnDownload()">
+			<input type="button" value="擦除" onclick="OnClear()">
+			<input type="button" value="暂停" onclick="OnPause(this)"></h2>
+
+        <input type="range" id="input_num" value="2" min="1" max="10" onchange="OnNumButton()">
+		<a id="show_input_num">2</a><br> 
+		-------------------------------------------------<br>
+		x轴：<input type="range" id="x" value="500" min="0" max="10000" onchange="OnChangePosition(this)"><br>
+		y轴：<input type="range" id="y" value="500" min="0" max="10000" onchange="OnChangePosition(this)"><br>
+		x轴加速度：<input type="number" id="ax" width="5" value="0" step="0.1" min="-10" max="10" onchange="OnChangePosition(this)"><br>
+		y轴加速度：<input type="number" id="ay" width="5" value="0" step="0.1" min="-10" max="10" onchange="OnChangePosition(this)"><br>
+        -------------------------------------------------<br>
+        <div id='balls'>
+            <div id="b1" align="right">
+                第<i>1</i>个球 <br> 半径: <input type="number" id="r" width="5" value="1.2" step="0.1" min="0.0" max="1000.0" onchange="OnInputChange(this)"><br> 半径加速度: <input type="number" id="ar" width="5" value="0.0" step="0.1" min="-100.0" max="100.0" onchange="OnInputChange(this)"><br>                位置: <input type="number" id="vr" width="5" value="0.0" step="0.1" min="0.0" max="100.0" onchange="OnInputChange(this)"><br> 转速: <input type="number" id="v_angle" width="5" value="0.2" step="0.1" min="-100.0" max="100.0" onchange="OnInputChange(this)"><br>                旋转加速度: <input type="number" id="acc_angle" width="5" value="0.0" step="0.01" min="-10.0" max="10.0" onchange="OnInputChange(this)"><br> 颜色: <input type="color" id="color" color="#ff0000" onchange="OnInputChange(this)"> 
+					轨迹: <input type="checkbox" id="show" onchange="OnInputChange(this)" checked>
+					圆形： <input type="checkbox" id="show_ball" onchange="OnInputChange(this)"><br>
+					-------------------------------------------------
+                <br>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        var canvas = document.getElementById("canvas1");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        var ctx = canvas.getContext("2d");
+
+        var canvas2 = document.getElementById("canvas2");
+        canvas2.width = window.innerWidth;
+        canvas2.height = window.innerHeight;
+        var ctx2 = canvas2.getContext("2d");
+
+        class Ball {
+            constructor(x, y, r, vr, ar, v_angle, acc_angle, color) {
+                this.x = x
+                this.y = y
+                this.r = r
+                this.ar = ar
+                this.vr = vr
+                this.v_angle = v_angle
+                this.acc_angle = acc_angle
+                this.color = color
+                this.show = true
+				this.show_ball=false
+            }
+            render(c) {
+
+                //ctx.clearRect(0,0,canvas.width,canvas.height);
+                c.beginPath()
+				c.strokeStyle = this.color
+                c.arc(this.x, this.y, this.r, 0, 2 * Math.PI)
+                //c.fillStyle = this.color
+                //c.fill()
+                c.closePath()
+                c.stroke()
+            }
+
+            arc_render(c, x, y, r, begin_angle, end_angle) {
+                c.beginPath()
+                c.strokeStyle = this.color
+                let angle = end_angle - begin_angle
+                if (angle > 0 && angle < Math.PI) {
+                    c.arc(x, y, r, begin_angle, end_angle)
+                    c.stroke()
+                } else if (angle < 0 && angle > -Math.PI) {
+                    c.arc(x, y, r, end_angle, begin_angle)
+                    c.stroke()
+                }
+            }
+
+            line_render(c, targetX, targetY) {
+                //c.clearRect(targetX,targetY,this.x-targetX,this.y-targetY);
+                //c.clearRect(0,0,canvas.width,canvas.height)
+                c.beginPath()
+                c.strokeStyle = this.color
+                c.moveTo(targetX, targetY)
+                c.lineTo(this.x, this.y)
+                c.stroke()
+
+            }
+
+        }
+
+        //colors = ['aqua', 'black', 'blue', 'fuchsia', 'gray', 'green', 'lime', 'maroon',
+        //    'navy', 'olive', 'purple', 'red', 'silver', 'teal', 'yellow'
+        //]
+		
+		colors = ['#00FFFF','#7FFFD4','#F0FFFF','#FFE4C4',
+					'#000000','#0000FF','#8A2BE2','#A52A2A',
+					'#5F9EA0','#7FFF00','#D2691E','#FF7F50',
+					'#6495ED','#DC143C','#00FFFF','#00008B',
+					'#008B8B','#B8860B','#006400','#8B008B',
+					'#FF8C00','#9932CC','#8B0000','#2F4F4F',
+					'#FF1493','#FFD700','#DAA520','#008000',
+					'#FFA500','#FF4500','#FFFF00','#9ACD32']
+
+
+        root_div = document.getElementById("balls");
+        balls_div = root_div.children
+		bakeup_node=root_div.lastElementChild
+
+        var targetX = canvas.width / 2
+        var targetY = canvas.height / 2
+        balls = []
+
+        //球的数量
+        ball_number = 1
+            //创建一个球
+        create_balls(0, 1)
+
+
+		function OnDownload(){
+			let type = 'png';
+			let imgData = canvas.toDataURL(type);
+			let _fixType = function(type) {
+				type = type.toLowerCase().replace(/jpg/i, 'jpeg');
+				let r = type.match(/png|jpeg|bmp|gif/)[0];
+				return 'image/' + r;
+			}
+			imgData = imgData.replace(_fixType(type),'image/octet-stream');
+			let saveFile = function(data, filename){
+				let save_link = document.createElementNS('http://www.w3.org/1999/xhtml', 'a');
+				save_link.href = data;
+				save_link.download = filename;
+			   
+				let event = document.createEvent('MouseEvents');
+				event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+				save_link.dispatchEvent(event);
+			};
+			// 名称
+			var filename = 'circle_path' + (new Date()).getTime() + '.' + type;
+			// download
+			saveFile(imgData,filename);
+		}
+
+
+        function OnClear() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            //ctx2.clearRect(0, 0, canvas2.width, canvas2.height)
+        }
+
+        function OnRedraw() {
+            OnClear()
+
+            document.getElementById("input_num").value = 1
+            OnNumButton();
+            balls = []
+            create_balls(0, 1)
+            ball_number = 1
+        }
+
+
+        OnNumButton();
+
+
+
+        function OnNumButton() {
+            //console.log(ball_number,input_number)
+            input_number = Number(document.getElementById("input_num").value)
+            show_input_num = document.getElementById("show_input_num").text = input_number;
+            //球个数变了，重新绘制
+            if (ball_number < input_number) {
+                for (let i = ball_number; i < input_number; i++) {
+                    root_div.appendChild(bakeup_node.cloneNode(true))
+                }
+            } else if (ball_number > input_number) {
+                for (let i = ball_number; i > input_number; i--) {
+                    root_div.removeChild(root_div.lastElementChild)
+                }
+            }
+            create_balls(ball_number, input_number)
+        }
+
+
+
+
+        //随机产生圆的位置x,y,半径r,颜色color
+        function create_balls(ball_num, input_num) {
+
+            if (ball_num < input_num) {
+                for (let i = ball_num; i < input_num; i++) {
+                    if (balls[i] != undefined) {
+                        i++
+                        continue
+                    }
+                    let x = targetX //Math.random()*canvas.width
+                    let y = targetY //Math.random()*canvas.height
+                    let r = Math.max(Math.random() * 100, 20)
+                    let ar = 0.0
+                    let vr = 0.0
+                    let v_angle = Math.random()
+                    let acc_angle = 0.0
+                    let color_index = Math.floor(Math.random() * colors.length)
+
+                    let ball = new Ball(x, y, r, ar, vr, v_angle, acc_angle, colors[color_index])
+                    balls.push(ball)
+
+                }
+
+            }
+            // else if (ball_num > input_num) {
+            //     for (let i = ball_num; i > input_num; i--) {
+            //         balls.pop()
+            //     }
+            // }
+
+            ball_number = input_num
+
+            show_params(ball_number)
+        }
+
+
+	
+		params_show=true
+		
+		function OnMouseOver(){
+			params_show=false
+		}
+		function OnMouseOut(){
+			params_show=true
+		}
+		
+		//鼠标的默认位置，如果有鼠标的话,
+        mouseX = canvas.width / 2
+        mouseY = canvas.height / 2
+		aix_x=document.getElementById("x")
+		aix_x.value=mouseX
+		aix_x.max=canvas.width
+		aix_y=document.getElementById("y")
+		aix_y.value=mouseY
+		aix_y.max=canvas.height
+		a_mouseX=0
+		a_mouseY=0
+		// 根坐标的位置
+		function OnChangePosition(e){
+			switch (e.id) {
+                case "x":
+                    mouseX = Number(e.value);
+                    break;
+                case "y":
+                    mouseY = Number(e.value);
+                    break;
+				case "ax":
+                    a_mouseX = Number(e.value);
+                    break;
+                case "ay":
+                    a_mouseY = Number(e.value);
+                    break;
+			}
+		}
+		
+        //当输入参数变化时
+        function OnInputChange(e) {
+            let i = Number(e.parentNode.firstElementChild.innerText) - 1
+            switch (e.id) {
+                case "r":
+                    balls[i].r = Number(e.value);
+                    break;
+                case "ar":
+                    balls[i].ar = Number(e.value);
+                    break;
+                case "vr":
+                    balls[i].vr = Number(e.value);
+                    break;
+                case "v_angle":
+                    balls[i].v_angle = Number(e.value);
+                    break;
+                case "acc_angle":
+                    balls[i].acc_angle = Number(e.value);
+                    break;
+                case "color":
+                    balls[i].color = e.value;
+                    break;
+                case "show":
+                    balls[i].show = e.checked;
+                    break;
+				case "show_ball":
+					console.log(e.checked);
+					balls[i].show_ball = e.checked;
+					break;
+            }
+            //console.log(i, e.id)
+			//params_show=true
+            show_params(ball_number)
+        }
+
+        //显示参数
+        function show_params(num) {
+            for (let i = 0; i < num; i++) {
+                //console.log(balls_div[i].children[0])
+                balls_div[i].children[0].innerText = i + 1
+                balls_div[i].children[2].value = balls[i].r
+                balls_div[i].children[4].value = balls[i].ar
+                balls_div[i].children[6].value = balls[i].vr
+                balls_div[i].children[8].value = balls[i].v_angle
+                balls_div[i].children[10].value = balls[i].acc_angle
+                balls_div[i].children[12].value = String(balls[i].color)
+                balls_div[i].children[13].value = balls[i].show
+				balls_div[i].children[14].value = balls[i].show_ball
+
+            }
+        }
+
+        //设置参数
+        function set_params(num) {
+            for (let i = 0; i < num; i++) {
+                balls[i].r = Number(balls_div[i].children[2].value)
+                balls[i].ar = Number(balls_div[i].children[4].value)
+                balls[i].vr = Number(balls_div[i].children[6].value)
+                balls[i].v_angle = Number(balls_div[i].children[8].value)
+                balls[i].acc_angle = Number(balls_div[i].children[10].value)
+                balls[i].color = balls_div[i].children[12].value
+                balls[i].show = balls_div[i].children[13].checked
+				balls[i].show_ball = balls_div[i].children[14].checked
+            }
+        }
+
+		runing=true
+		function OnPause(e){
+			if(runing){
+				runing=false
+				e.value="开始"
+			}else{
+				runing=true
+				e.value="暂停"
+			}
+		}
+
+        
+
+        function updata() {
+			if(!runing)return
+			if(params_show)
+				show_params(ball_number)
+            targetX = mouseX
+            targetY = mouseY
+			mouseX+=a_mouseX
+			mouseY+=a_mouseY
+            ctx2.clearRect(0, 0, canvas2.width, canvas2.height)
+            for (let i = 0; i < ball_number; i++) {
+
+                ctx.moveTo(targetX, targetY)
+                    //开始角度
+                begin_angle = Math.atan2(balls[i].y - targetY, balls[i].x - targetX)
+                    // 第i个球的半径
+                radius = balls[i].r
+                    //半径的增长上限是200
+                if (balls[i].r + balls[i].ar>0)
+                    balls[i].r += balls[i].ar
+                    // 球的位置
+                balls[i].x = targetX + Math.cos(balls[i].vr) * radius
+                balls[i].y = targetY + Math.sin(balls[i].vr) * radius
+                    //转动速度
+                balls[i].vr += balls[i].v_angle * 0.03
+                    //转动加速度,转动速度的增长上限是2
+                
+                balls[i].v_angle += balls[i].acc_angle
+                    
+				
+					
+                    //结束角度
+                end_angle = Math.atan2(balls[i].y - targetY, balls[i].x - targetX)
+
+                //渲染半径
+                balls[i].line_render(ctx2, targetX, targetY)
+				if (balls[i].show_ball)
+					balls[i].render(ctx2)
+                    //console.log('@',begin_angle,'#',end_angle)
+                    // ctx渲染轨迹
+                    //if(i==balls.length-1)//只渲染最后一个球的轨迹
+                if (balls[i].show)
+                    balls[i].arc_render(ctx, targetX, targetY, radius, begin_angle, end_angle)
+
+                // 设置下个球的旋转中心点
+                targetX = balls[i].x
+                targetY = balls[i].y
+
+            }
+        }
+
+        const raf = window.requestAnimationFrame;
+
+        // 将函数写在括号里,默认执行该函数.
+        (function animate() {
+
+            updata();
+
+            raf(animate);
+        })();
+
+
+
+        // canvas.addEventListener('mousemove', ((e) => {
+        // 	mouseX = e.x
+        // 	mouseY = e.y
+        // }))
+    </script>
+
+</body>
+
+</html>

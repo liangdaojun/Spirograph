@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="myCanvas" style="border:1px solid #d3d3d3;">
+
+Your browser does not support the HTML5 canvas tag.
+</canvas>
+
+<script>
+
+var canvas=document.getElementById("myCanvas");
+
+canvas.width = window.innerWidth/2 > 1000 ? 1000 : window.innerWidth;
+canvas.height = window.innerHeight;
+
+var ctx=canvas.getContext("2d");
+
+console.log("hello")
+
+class Ball{
+	constructor(x,y,r,color) {
+		this.x=x
+		this.y=y
+		this.r=r
+		this.color=color
+	}
+	render(c,tx,ty){
+		
+		//ctx.clearRect(0,0,canvas.width,canvas.height);
+		c.beginPath()
+		let radian = 0  //设置初始弧度
+		let acc_r = Math.PI/180  //设置弧度增量
+		c.beginPath()
+		c.moveTo(tx+this.getX(radian),ty+this.getY(radian)); //移动绘图游标至原点
+		while(radian <= (Math.PI*2)){  //每增加一次弧度，绘制一条线
+		    radian += acc_r
+		    let X = tx+this.getX(radian)
+		    let Y = ty+this.getY(radian)
+		    c.lineTo(X,Y)
+		}
+		c.fillStyle=this.color
+		c.fill()
+		c.closePath()
+		c.stroke()
+	}
+	
+	getX(t){
+		return x=this.r*(16*Math.pow(Math.sin(t),3))
+	}
+	getY(t){
+		return y=-this.r*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))
+	}
+	
+}
+colors=['aqua','black','blue', 'fuchsia', 'gray', 'green', 'lime', 'maroon',
+'navy','olive','purple','red','silver','teal','white','yellow']
+
+//随机产生圆的位置x,y,半径r,颜色color
+
+ball_number=Math.max(Math.random()*10,3)
+balls=[]
+vx=[]
+vy=[]
+friction=[]
+f=1
+for(let i =0; i<ball_number;i++){
+	x=Math.random()*canvas.width
+	y=Math.random()*canvas.height
+	r=Math.max(Math.random()*10,1)
+	color_index=Math.floor(Math.random()*colors.length)
+	
+	ball =new Ball(x,y,r,colors[color_index])
+	
+	balls.push(ball)
+	vx.push(0)
+	vy.push(0)
+	
+	f*=0.93
+	friction.push(f)
+	console.log(x,y,r,color_index)
+}
+
+
+
+easing=0.2
+spring=0.03
+//friction=0.95
+targetX = 0
+targetY = 0
+
+function updata(){
+	for(let i=0;i<ball_number;i++){
+		ctx.moveTo(targetX,targetY)
+		ctx.lineTo(balls[i].x,balls[i].y)
+		ctx.stroke()
+		ax=(targetX-balls[i].x)*spring
+		ay=(targetY-balls[i].y)*spring
+		vx[i]=(vx[i]+ax)*friction[i]+(i+2)*(Math.random()-0.5)
+		vy[i]=(vy[i]+ay)*friction[i]+(i+2)*(Math.random()-0.5)
+		balls[i].x+=vx[i]
+		balls[i].y+=vy[i]
+		balls[i].render(ctx,targetX,targetY);
+		targetX=balls[i].x
+		targetY=balls[i].y
+	
+	}
+}
+
+const raf = window.requestAnimationFrame;
+
+
+// 将函数写在括号里,默认执行该函数.
+(function animate() {
+	ctx.clearRect(0,0,canvas.width,canvas.height);
+	
+	updata()
+	
+    raf(animate);
+})();
+
+
+canvas.addEventListener('mousemove', ((e) => {
+	targetX = e.x
+	targetY = e.y
+}))
+
+
+</script> 
+
+</body>
+</html>

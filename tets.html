@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="myCanvas" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML5 canvas tag.
+</canvas>
+
+<script>
+var canvas=document.getElementById("myCanvas");
+canvas.width = window.innerWidth
+canvas.height = window.innerHeight;
+var ctx=canvas.getContext("2d");
+
+class Ball{
+	constructor(x,y,r,color) {
+		this.x=x
+		this.y=y
+		this.r=r
+		this.color=color
+	}
+	render(c){
+		//ctx.clearRect(0,0,canvas.width,canvas.height);
+		c.beginPath()
+		c.arc(this.x,this.y,this.r,0,2*Math.PI)
+		c.fillStyle=this.color
+		c.fill()
+		c.closePath()
+		c.stroke()
+	}
+}
+colors=['aqua','black','blue', 'fuchsia', 'gray', 'green', 'lime', 'maroon',
+'navy','olive','purple','red','silver','teal','white','yellow']
+
+//随机产生圆的位置x,y,半径r,颜色color
+ball_number=Math.max(Math.random()*10,3)
+balls=[]
+vx=[]
+vy=[]
+for(let i =0; i<ball_number;i++){
+	x=Math.random()*canvas.width
+	y=Math.random()*canvas.height
+	r=Math.max(Math.random()*100,20)
+	color_index=Math.floor(Math.random()*colors.length)
+	ball =new Ball(x,y,r,colors[color_index])
+	balls.push(ball)
+	vx.push(0)
+	vy.push(0)
+	//console.log(x,y,r,color_index)
+}
+
+easing=0.2
+targetX = 0
+targetY = 0
+const raf = window.requestAnimationFrame;
+
+// 将函数写在括号里,默认执行该函数.
+(function animate() {
+	ctx.clearRect(0,0,canvas.width,canvas.height);
+	
+	for(let i=0;i<ball_number;i++){
+		ctx.moveTo(targetX,targetY)
+		ctx.lineTo(balls[i].x,balls[i].y)
+		ctx.stroke()
+		vx[i]=(targetX-balls[i].x)*easing
+		vy[i]=(targetY-balls[i].y)*easing
+		balls[i].x+=vx[i]
+		balls[i].y+=vy[i]
+		balls[i].render(ctx)
+		targetX=balls[i].x
+		targetY=balls[i].y
+	}
+    raf(animate);
+})();
+
+canvas.addEventListener('mousemove', ((e) => {
+	targetX = e.x
+	targetY = e.y
+}))
+
+</script> 
+</body>
+</html>
